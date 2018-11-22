@@ -15,7 +15,7 @@ import math.spline.QuinticHermiteSpline;
 public class TrajectoryGenerator {
 
   private static double pointsPerPath = 100_000;
-  private static double dI = 1e-6;  
+  private static double dI = 1e-6;
 
   public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, Point... path) {
     List<QuinticHermiteSpline> p = new ArrayList<>();
@@ -34,11 +34,11 @@ public class TrajectoryGenerator {
   }
 
   public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Path path) {
-	  VelocityDistanceTPoint[] v = TrajectoryGenerator.generateAverageTrajectoryVsDistance(rc, path);
-	  VelocityTime[] vt = TrajectoryGenerator.generateAverageTrajectoryVsTime(v);
-	  VelocityTime[][] skids = TrajectoryGenerator.getSkidVelocities(rc, vt, path);
-	  VelocityTime[][] traj = TrajectoryGenerator.getNormalizedSkidVelocities(skids, 20 / 1000.0);
-      System.out.println("generate");
+    VelocityDistanceTPoint[] v = TrajectoryGenerator.generateAverageTrajectoryVsDistance(rc, path);
+    VelocityTime[] vt = TrajectoryGenerator.generateAverageTrajectoryVsTime(v);
+    VelocityTime[][] skids = TrajectoryGenerator.getSkidVelocities(rc, vt, path);
+    VelocityTime[][] traj = TrajectoryGenerator.getNormalizedSkidVelocities(skids, 20 / 1000.0);
+    System.out.println("generate");
 
     TrajectoryPoint[][] followableTrajectory = new TrajectoryPoint[2][traj[0].length];
     final double dT = traj[0][1].time - traj[0][0].time;
@@ -55,8 +55,10 @@ public class TrajectoryGenerator {
           (traj[1][i].velocity - followableTrajectory[1][i - 1].getVelocity()) / dT,
           path.get((int) traj[1][i].t).getHeading(traj[1][i].t % 1) - initHeading, dT);
     }
-    followableTrajectory[0][followableTrajectory[0].length-1].setHeading(followableTrajectory[0][followableTrajectory[0].length-2].getHeading());
-    followableTrajectory[1][followableTrajectory[1].length-1].setHeading(followableTrajectory[1][followableTrajectory[1].length-2].getHeading());
+    followableTrajectory[0][followableTrajectory[0].length - 1]
+        .setHeading(followableTrajectory[0][followableTrajectory[0].length - 2].getHeading());
+    followableTrajectory[1][followableTrajectory[1].length - 1]
+        .setHeading(followableTrajectory[1][followableTrajectory[1].length - 2].getHeading());
     if (isReversed) {
       TrajectoryPoint[] temp = followableTrajectory[0];
       followableTrajectory[0] = followableTrajectory[1];
@@ -71,20 +73,22 @@ public class TrajectoryGenerator {
       }
       // //Invert heading trajectory
       // for(int i = 0; i < followableTrajectory[0].length/2; i++) {
-      //   double tempHeading = followableTrajectory[0][i].getHeading();
-      //   followableTrajectory[0][i].setHeading(followableTrajectory[0][followableTrajectory[0].length-i-1].getHeading());
-      //   followableTrajectory[0][followableTrajectory[0].length-i-1].setHeading(tempHeading);
-      //   followableTrajectory[1][i].setHeading(followableTrajectory[1][followableTrajectory[1].length-i-1].getHeading());
-      //   followableTrajectory[1][followableTrajectory[1].length-i-1].setHeading(tempHeading);
-      // } 
+      // double tempHeading = followableTrajectory[0][i].getHeading();
+      // followableTrajectory[0][i].setHeading(followableTrajectory[0][followableTrajectory[0].length-i-1].getHeading());
+      // followableTrajectory[0][followableTrajectory[0].length-i-1].setHeading(tempHeading);
+      // followableTrajectory[1][i].setHeading(followableTrajectory[1][followableTrajectory[1].length-i-1].getHeading());
+      // followableTrajectory[1][followableTrajectory[1].length-i-1].setHeading(tempHeading);
+      // }
       // double initH = followableTrajectory[0][0].getHeading();
       // for(int i = 0; i < followableTrajectory[0].length; i++) {
-      //   followableTrajectory[0][i].setHeading(followableTrajectory[0][i].getHeading() - initH);
-      //   followableTrajectory[1][i].setHeading(followableTrajectory[1][i].getHeading() - initH);
+      // followableTrajectory[0][i].setHeading(followableTrajectory[0][i].getHeading()
+      // - initH);
+      // followableTrajectory[1][i].setHeading(followableTrajectory[1][i].getHeading()
+      // - initH);
       // }
     }
 
-    for(int i = 0; i < followableTrajectory[0].length; i++) {
+    for (int i = 0; i < followableTrajectory[0].length; i++) {
       followableTrajectory[0][i].setHeading(Point.normalize(followableTrajectory[0][i].getHeading(), Math.PI));
       followableTrajectory[1][i].setHeading(Point.normalize(followableTrajectory[1][i].getHeading(), Math.PI));
     }
@@ -93,45 +97,48 @@ public class TrajectoryGenerator {
     do {
       count++;
       changed = false;
-      for(int i = 0; i < followableTrajectory[0].length-1; i++) {
-        if(Math.abs(followableTrajectory[0][i+1].getHeading() - followableTrajectory[0][i].getHeading()) > Math.PI/2.0) {
-          double sign = followableTrajectory[0][i+1].getHeading() - followableTrajectory[0][i].getHeading() > 0 ? 1 : -1;
-          followableTrajectory[0][i+1].setHeading(followableTrajectory[0][i+1].getHeading()-(Math.PI*sign));
+      for (int i = 0; i < followableTrajectory[0].length - 1; i++) {
+        if (Math.abs(followableTrajectory[0][i + 1].getHeading() - followableTrajectory[0][i].getHeading()) > Math.PI
+            / 2.0) {
+          double sign = followableTrajectory[0][i + 1].getHeading() - followableTrajectory[0][i].getHeading() > 0 ? 1
+              : -1;
+          followableTrajectory[0][i + 1].setHeading(followableTrajectory[0][i + 1].getHeading() - (Math.PI * sign));
           changed = true;
         }
-        if(followableTrajectory[1][i+1].getHeading() - followableTrajectory[1][i].getHeading() > Math.PI/2.0) {
-          double sign = followableTrajectory[1][i+1].getHeading() - followableTrajectory[1][i].getHeading() > 0 ? 1 : -1;
-          followableTrajectory[1][i+1].setHeading(followableTrajectory[1][i+1].getHeading()-(Math.PI*sign));
+        if (followableTrajectory[1][i + 1].getHeading() - followableTrajectory[1][i].getHeading() > Math.PI / 2.0) {
+          double sign = followableTrajectory[1][i + 1].getHeading() - followableTrajectory[1][i].getHeading() > 0 ? 1
+              : -1;
+          followableTrajectory[1][i + 1].setHeading(followableTrajectory[1][i + 1].getHeading() - (Math.PI * sign));
           changed = true;
         }
       }
-    } while(changed);
+    } while (changed);
     System.out.println("Continuized path " + count + " times");
 
-    if(!(filename == null || filename == "")) {
-	    FileWriter fw = null;
-	    try {
-	      fw = new FileWriter(new File("Left_" + filename + ".csv"));
-	      fw.flush();
-	      fw.write("Time, Pos, Vel, Acc, Heading, Timestep \n");
-	      for (int i = 0; i < followableTrajectory[0].length; i++) {
-	        fw.write(followableTrajectory[0][i].toString());
-	      }
-	      fw.close();
-	    } catch (Exception e) {
-	
-	    }
-	    try {
-	      fw = new FileWriter(new File("Right_" + filename + ".csv"));
-	      fw.flush();
-	      fw.write("Time, Pos, Vel, Acc, Heading, Timestep \n");
-	      for (int i = 0; i < followableTrajectory[1].length; i++) {
-	        fw.write(followableTrajectory[1][i].toString());
-	      }
-	      fw.close();
-	    } catch (Exception e) {
-	
-	    }	
+    if (!(filename == null || filename == "")) {
+      FileWriter fw = null;
+      try {
+        fw = new FileWriter(new File("Left_" + filename + ".csv"));
+        fw.flush();
+        fw.write("Time, Pos, Vel, Acc, Heading, Timestep \n");
+        for (int i = 0; i < followableTrajectory[0].length; i++) {
+          fw.write(followableTrajectory[0][i].toString());
+        }
+        fw.close();
+      } catch (Exception e) {
+
+      }
+      try {
+        fw = new FileWriter(new File("Right_" + filename + ".csv"));
+        fw.flush();
+        fw.write("Time, Pos, Vel, Acc, Heading, Timestep \n");
+        for (int i = 0; i < followableTrajectory[1].length; i++) {
+          fw.write(followableTrajectory[1][i].toString());
+        }
+        fw.close();
+      } catch (Exception e) {
+
+      }
     }
     return followableTrajectory;
   }
@@ -198,19 +205,20 @@ public class TrajectoryGenerator {
     normVt[0][loopCounter].time = normVt[0][loopCounter - 1].time + wantedDt;
     normVt[1][loopCounter].time = normVt[1][loopCounter - 1].time + wantedDt;
 
-//    FileWriter fw = null;
-//    try {
-//      fw = new FileWriter(new File("normLeft.csv"));
-//      fw.flush();
-//      fw.write("Time, Left Vel, Right Vel, Vel avg \n");
-//      for (int id = 0; id < normVt[0].length; id++) {
-//        fw.write(normVt[0][id].time + ", " + normVt[0][id].velocity + ", " + normVt[1][id].velocity + ", "
-//            + (normVt[0][id].velocity + normVt[1][id].velocity) / 2 + ",\n");
-//      }
-//      fw.close();
-//    } catch (Exception e) {
-//
-//    }
+    // FileWriter fw = null;
+    // try {
+    // fw = new FileWriter(new File("normLeft.csv"));
+    // fw.flush();
+    // fw.write("Time, Left Vel, Right Vel, Vel avg \n");
+    // for (int id = 0; id < normVt[0].length; id++) {
+    // fw.write(normVt[0][id].time + ", " + normVt[0][id].velocity + ", " +
+    // normVt[1][id].velocity + ", "
+    // + (normVt[0][id].velocity + normVt[1][id].velocity) / 2 + ",\n");
+    // }
+    // fw.close();
+    // } catch (Exception e) {
+    //
+    // }
 
     return normVt;
   }
@@ -373,7 +381,7 @@ public class TrajectoryGenerator {
     return (Math.abs(radius) * constraints.maxVelocity) / (Math.abs(radius) + constraints.wheelbase / 2);
   }
 
-  public static void setDI(double i){
+  public static void setDI(double i) {
     dI = i;
   }
 
