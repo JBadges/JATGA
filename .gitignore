@@ -15,6 +15,9 @@
 *.tar.gz
 *.rar
 
+# Debug #
+*.csv
+
 # Ignore Gradle GUI config
 gradle-app.setting
 

@@ -17,6 +17,14 @@ public class TrajectoryGenerator {
   private static double pointsPerPath = 100_000;
   private static double dI = 1e-6;  
 
+  public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, Point... path) {
+    List<QuinticHermiteSpline> p = new ArrayList<>();
+    for (int i = 1; i < path.length; i++) {
+      p.add(new QuinticHermiteSpline(path[i - 1], path[i]));
+    }
+    return generate(rc, isReversed, "", new Path(p));
+  }
+
   public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Point... path) {
     List<QuinticHermiteSpline> p = new ArrayList<>();
     for (int i = 1; i < path.length; i++) {
