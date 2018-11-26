@@ -16,7 +16,14 @@ public class Main {
     double sTime = System.currentTimeMillis();
     TrajectoryGenerator.setPointsPerPath(100_000);
     TrajectoryGenerator.setDI(1e-6);
-    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, new Point(0, 0, 0), new Point(3.3, 1.12912, 0));
+    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, new Point(0, 0, 0), 
+    new Point(10, 0, 2),
+    new Point(25, 43, 3), 
+    new Point(10, 2, Math.PI/3),
+    new Point(4, 8, 1), 
+    new Point(10, 23, 0),
+    new Point(0, 4, Math.PI), 
+    new Point(10, 23, 0));
     System.out.printf("Took %.2fs to generate the trajectories", (System.currentTimeMillis() - sTime) / 1000.0);
     BufferedWriter newPathWriter = null;
     List<Point> genPath = new ArrayList<>();
