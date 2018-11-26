@@ -1,16 +1,11 @@
 import static org.junit.Assert.assertEquals;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.util.MathUtils;
 import org.junit.Test;
 
-import junit.framework.Assert;
 import math.Point;
 import trajectory.RobotConstraints;
 import trajectory.TrajectoryGenerator;
