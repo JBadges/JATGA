@@ -72,6 +72,16 @@ public class TrajectoryTest {
     finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
     // Accurate to 1/100 of a radian
     assertEquals(Math.PI, finalHeading, 1e-2);
+
+    Point[] pathD = { new Point(0, 0, Math.PI), new Point(0, 10, Math.PI / 2), new Point(15, 20, 0),
+        new Point(5, 10, Math.PI) };
+    trajs = TrajectoryGenerator.generate(rc, true, pathD);
+
+    genPath = testPath(trajs, rc);
+    finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
+    // Accurate to 1/100 of a radian
+    assertEquals(0, trajs[0][0].getHeading(), 1e-2);
+    assertEquals(0, finalHeading, 1e-2);
   }
 
   @Test

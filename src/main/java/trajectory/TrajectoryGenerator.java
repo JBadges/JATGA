@@ -11,6 +11,7 @@ import math.LinearRegression;
 import math.Point;
 import math.spline.Path;
 import math.spline.QuinticHermiteSpline;
+import math.spline.Spline;
 
 public class TrajectoryGenerator {
 
@@ -71,21 +72,6 @@ public class TrajectoryGenerator {
         followableTrajectory[1][i].setVelocity(-followableTrajectory[1][i].getVelocity());
         followableTrajectory[1][i].setAcceleration(-followableTrajectory[1][i].getAcceleration());
       }
-      // //Invert heading trajectory
-      // for(int i = 0; i < followableTrajectory[0].length/2; i++) {
-      // double tempHeading = followableTrajectory[0][i].getHeading();
-      // followableTrajectory[0][i].setHeading(followableTrajectory[0][followableTrajectory[0].length-i-1].getHeading());
-      // followableTrajectory[0][followableTrajectory[0].length-i-1].setHeading(tempHeading);
-      // followableTrajectory[1][i].setHeading(followableTrajectory[1][followableTrajectory[1].length-i-1].getHeading());
-      // followableTrajectory[1][followableTrajectory[1].length-i-1].setHeading(tempHeading);
-      // }
-      // double initH = followableTrajectory[0][0].getHeading();
-      // for(int i = 0; i < followableTrajectory[0].length; i++) {
-      // followableTrajectory[0][i].setHeading(followableTrajectory[0][i].getHeading()
-      // - initH);
-      // followableTrajectory[1][i].setHeading(followableTrajectory[1][i].getHeading()
-      // - initH);
-      // }
     }
 
     for (int i = 0; i < followableTrajectory[0].length; i++) {
@@ -205,21 +191,6 @@ public class TrajectoryGenerator {
     normVt[0][loopCounter].time = normVt[0][loopCounter - 1].time + wantedDt;
     normVt[1][loopCounter].time = normVt[1][loopCounter - 1].time + wantedDt;
 
-    // FileWriter fw = null;
-    // try {
-    // fw = new FileWriter(new File("normLeft.csv"));
-    // fw.flush();
-    // fw.write("Time, Left Vel, Right Vel, Vel avg \n");
-    // for (int id = 0; id < normVt[0].length; id++) {
-    // fw.write(normVt[0][id].time + ", " + normVt[0][id].velocity + ", " +
-    // normVt[1][id].velocity + ", "
-    // + (normVt[0][id].velocity + normVt[1][id].velocity) / 2 + ",\n");
-    // }
-    // fw.close();
-    // } catch (Exception e) {
-    //
-    // }
-
     return normVt;
   }
 
@@ -262,20 +233,6 @@ public class TrajectoryGenerator {
     leftAndRight[1][leftAndRight[1].length - 1].time = leftAndRight[1][leftAndRight[1].length - 2].time;
     leftAndRight[1][0].velocity = 0;
 
-    // FileWriter fw = null;
-    // try {
-    // fw = new FileWriter(new File("left&right.csv"));
-    // fw.flush();
-    // fw.write("Time, Left Vel, Right Vel, Vel avg \n");
-    // for(int i = 0; i < leftAndRight[0].length; i++) {
-    // fw.write(leftAndRight[0][i].time + ", " + leftAndRight[0][i].velocity + ", "
-    // + leftAndRight[1][i].velocity + ", " + (leftAndRight[0][i].velocity +
-    // leftAndRight[1][i].velocity)/2 + ",\n");
-    // }
-    // fw.close();
-    // } catch (Exception e) {
-
-    // }
     return leftAndRight;
   }
 
@@ -294,18 +251,7 @@ public class TrajectoryGenerator {
       vt[i].time = vt[i - 1].time + changeInTime;
       vt[i].t = avgTrajVsDist[i].t;
     }
-    // FileWriter fw = null;
-    // try {
-    // fw = new FileWriter(new File("veltime.csv"));
-    // fw.flush();
-    // fw.write("Velocity, Time, \n");
-    // for(int i = 0; i < vt.length; i++) {
-    // fw.write(vt[i].velocity + "," + vt[i].time + ",\n");
-    // }
-    // fw.close();
-    // } catch (Exception e) {
 
-    // }
     return vt;
   }
 
@@ -329,6 +275,7 @@ public class TrajectoryGenerator {
       maxVelocity[i] = new VelocityDistanceTPoint();
     }
 
+    System.out.println("FP Start");
     // Forward Propagation
     for (int i = 1; i < maxVelocity.length; i++) {
       double currentVelocity = maxVelocity[i - 1].velocity;
@@ -338,6 +285,7 @@ public class TrajectoryGenerator {
       maxVelocity[i].distance = i * dD;
       maxVelocity[i].t = sumToT(path, maxVelocity[i].distance, true);
     }
+    System.out.println("FP End");
 
     // End at zero velocity
     maxVelocity[maxVelocity.length - 1].velocity = 0;
@@ -351,18 +299,7 @@ public class TrajectoryGenerator {
       maxVelocity[i].distance = i * dD;
       maxVelocity[i].t = sumToT(path, maxVelocity[i].distance, false);
     }
-    // FileWriter fw = null;
-    // try {
-    // fw = new FileWriter(new File("veldist.csv"));
-    // fw.flush();
-    // fw.write("Velocity, Distance, \n");
-    // for(int i = 0; i < maxVelocity.length; i++) {
-    // fw.write(maxVelocity[i].velocity + "," + maxVelocity[i].distance + ",\n");
-    // }
-    // fw.close();
-    // } catch (Exception e) {
 
-    // }
     return maxVelocity;
   }
 
@@ -395,6 +332,10 @@ public class TrajectoryGenerator {
     double i = 0;
     double dist = 0;
 
+    if(!increasing && sumT.isEmpty()) {
+      return 0;
+    }
+
     if (increasing && !sumT.isEmpty()) {
       dist = sumT.lastEntry().getKey();
       i = sumT.lastEntry().getValue();
@@ -403,6 +344,7 @@ public class TrajectoryGenerator {
       dist = entry.getKey();
       i = entry.getValue();
     }
+    
     while (dist < distance && i + dI < splines.size()) {
       Point a = splines.get((int) Math.floor(i)).getPoint(i % 1);
       i += dI;
