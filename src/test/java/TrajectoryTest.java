@@ -17,28 +17,28 @@ public class TrajectoryTest {
   public void straightPathAccuracy() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 0) };
-    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, pathA);
+    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     // Accurate to 1 cm
     assertEquals(10, genPath.get(genPath.size() - 1).getX(), 1e-2);
 
     Point[] pathB = { new Point(0, 0, 0), new Point(10, 0, 0) };
-    trajs = TrajectoryGenerator.generate(rc, true, pathB);
+    trajs = new TrajectoryGenerator().generate(rc, true, pathB);
 
     genPath = testPath(trajs, rc);
     // Accurate to 1 cm
     assertEquals(-10, genPath.get(genPath.size() - 1).getX(), 1e-2);
 
     Point[] pathC = { new Point(0, 0, Math.PI / 2), new Point(0, 10, Math.PI / 2) };
-    trajs = TrajectoryGenerator.generate(rc, false, pathC);
+    trajs = new TrajectoryGenerator().generate(rc, false, pathC);
 
     genPath = testPath(trajs, rc);
     // Accurate to 1 cm
     assertEquals(10, genPath.get(genPath.size() - 1).getX(), 1e-2);
 
     Point[] pathD = { new Point(0, 0, Math.PI / 2), new Point(0, 10, Math.PI / 2) };
-    trajs = TrajectoryGenerator.generate(rc, true, pathD);
+    trajs = new TrajectoryGenerator().generate(rc, true, pathD);
 
     genPath = testPath(trajs, rc);
     // Accurate to 1 cm
@@ -49,7 +49,7 @@ public class TrajectoryTest {
   public void headingTest() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 0) };
-    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, pathA);
+    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     double finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
@@ -57,7 +57,7 @@ public class TrajectoryTest {
     assertEquals(0, finalHeading, 1e-2);
 
     Point[] pathB = { new Point(0, 0, 0), new Point(0, 10, Math.PI / 2) };
-    trajs = TrajectoryGenerator.generate(rc, true, pathB);
+    trajs = new TrajectoryGenerator().generate(rc, true, pathB);
 
     genPath = testPath(trajs, rc);
     finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
@@ -66,7 +66,7 @@ public class TrajectoryTest {
 
     Point[] pathC = { new Point(0, 0, 0), new Point(0, 10, Math.PI / 2), new Point(15, 20, 0),
         new Point(5, 10, Math.PI) };
-    trajs = TrajectoryGenerator.generate(rc, true, pathC);
+    trajs = new TrajectoryGenerator().generate(rc, true, pathC);
 
     genPath = testPath(trajs, rc);
     finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
@@ -75,7 +75,7 @@ public class TrajectoryTest {
 
     Point[] pathD = { new Point(0, 0, Math.PI), new Point(0, 10, Math.PI / 2), new Point(15, 20, 0),
         new Point(5, 10, Math.PI) };
-    trajs = TrajectoryGenerator.generate(rc, true, pathD);
+    trajs = new TrajectoryGenerator().generate(rc, true, pathD);
 
     genPath = testPath(trajs, rc);
     finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
@@ -88,7 +88,7 @@ public class TrajectoryTest {
   public void totalTest() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0) };
-    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, pathA);
+    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     double finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);

@@ -14,8 +14,7 @@ public class Main {
   public static void main(String[] args) throws IOException {
     RobotConstraints rc = new RobotConstraints(3, 3, 3, 0.55926);
     double sTime = System.currentTimeMillis();
-    TrajectoryPoint[][] trajs = TrajectoryGenerator.generate(rc, false, new Point(0, 0, Math.PI), new Point(0, 10, Math.PI / 2), new Point(15, 20, 0),
-    new Point(5, 10, Math.PI));
+    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0));
     System.out.printf("Took %.2fs to generate the trajectories", (System.currentTimeMillis() - sTime) / 1000.0);
     BufferedWriter newPathWriter = null;
     List<Point> genPath = new ArrayList<>();

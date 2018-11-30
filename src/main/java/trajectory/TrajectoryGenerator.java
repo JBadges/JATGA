@@ -11,14 +11,13 @@ import math.LinearRegression;
 import math.Point;
 import math.spline.Path;
 import math.spline.QuinticHermiteSpline;
-import math.spline.Spline;
 
 public class TrajectoryGenerator {
 
-  private static double pointsPerPath = 100_000;
-  private static double dI = 1e-6;
+  private double pointsPerPath = 100_000;
+  private double dI = 1e-6;
 
-  public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, Point... path) {
+  public TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, Point... path) {
     List<QuinticHermiteSpline> p = new ArrayList<>();
     for (int i = 1; i < path.length; i++) {
       p.add(new QuinticHermiteSpline(path[i - 1], path[i]));
@@ -26,7 +25,7 @@ public class TrajectoryGenerator {
     return generate(rc, isReversed, "", new Path(p));
   }
 
-  public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Point... path) {
+  public TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Point... path) {
     List<QuinticHermiteSpline> p = new ArrayList<>();
     for (int i = 1; i < path.length; i++) {
       p.add(new QuinticHermiteSpline(path[i - 1], path[i]));
@@ -34,11 +33,11 @@ public class TrajectoryGenerator {
     return generate(rc, isReversed, filename, new Path(p));
   }
 
-  public static TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Path path) {
-    VelocityDistanceTPoint[] v = TrajectoryGenerator.generateAverageTrajectoryVsDistance(rc, path);
-    VelocityTime[] vt = TrajectoryGenerator.generateAverageTrajectoryVsTime(v);
-    VelocityTime[][] skids = TrajectoryGenerator.getSkidVelocities(rc, vt, path);
-    VelocityTime[][] traj = TrajectoryGenerator.getNormalizedSkidVelocities(skids, 20 / 1000.0);
+  public TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, String filename, Path path) {
+    VelocityDistanceTPoint[] v = generateAverageTrajectoryVsDistance(rc, path);
+    VelocityTime[] vt = generateAverageTrajectoryVsTime(v);
+    VelocityTime[][] skids = getSkidVelocities(rc, vt, path);
+    VelocityTime[][] traj = getNormalizedSkidVelocities(skids, 20 / 1000.0);
     System.out.println("generate");
 
     TrajectoryPoint[][] followableTrajectory = new TrajectoryPoint[2][traj[0].length];
@@ -129,7 +128,7 @@ public class TrajectoryGenerator {
     return followableTrajectory;
   }
 
-  public static VelocityTime[][] getNormalizedSkidVelocities(VelocityTime[][] skidTraj, double wantedDt) {
+  public VelocityTime[][] getNormalizedSkidVelocities(VelocityTime[][] skidTraj, double wantedDt) {
     System.out.println("getNormalizedSkidVelocities");
     // Sum all the skidTraj dt until just under dt - linreg for the dt wanted cap at
     // next seg loop and repeat
@@ -265,7 +264,7 @@ public class TrajectoryGenerator {
    * @param path
    * @return
    */
-  public static VelocityDistanceTPoint[] generateAverageTrajectoryVsDistance(RobotConstraints constraints, Path path) {
+  public VelocityDistanceTPoint[] generateAverageTrajectoryVsDistance(RobotConstraints constraints, Path path) {
     System.out.println("generateAverageTrajectoryVsDistance");
     double dD = path.getTotalDistance() / pointsPerPath;
     // Vf^2 = Vi^2 + 2*a*d
@@ -303,7 +302,7 @@ public class TrajectoryGenerator {
     return maxVelocity;
   }
 
-  private static double maximumAverageVelocityAtPoint(RobotConstraints constraints, Path path, double distance,
+  private double maximumAverageVelocityAtPoint(RobotConstraints constraints, Path path, double distance,
       boolean increasing) {
     // Constraints
     // left and right velocites <= Vmax | (Vleft + Vright) / 2 = Vmax
@@ -318,17 +317,17 @@ public class TrajectoryGenerator {
     return (Math.abs(radius) * constraints.maxVelocity) / (Math.abs(radius) + constraints.wheelbase / 2);
   }
 
-  public static void setDI(double i) {
+  public void setDI(double i) {
     dI = i;
   }
 
-  public static void setPointsPerPath(double ppp) {
+  public void setPointsPerPath(double ppp) {
     pointsPerPath = ppp;
   }
 
   static TreeMap<Double, Double> sumT = new TreeMap<>();
-
-  private static double sumToT(Path splines, double distance, boolean increasing) {
+  // static HashMap<Spline,HashMap<Double, Double>> twosPower = new HashMap<>();
+  private double sumToT(Path splines, double distance, boolean increasing) {
     double i = 0;
     double dist = 0;
 
@@ -355,6 +354,37 @@ public class TrajectoryGenerator {
       sumT.put(dist, i);
     }
     return i;
+
+    // QuinticHermiteSpline curSpline = splines.get(0);
+    // double dist = 0;
+    // int iOffset = 0;
+    // for(int i = 1; i < splines.size(); i++) {
+    //   if(distance > dist + splines.get(i).getArcLength()) {
+    //     dist += splines.get(i).getArcLength();
+    //     curSpline = splines.get(i);
+    //     iOffset++;
+    //   }
+    // }
+    // int optimizeTimes = 20;
+    // if(twosPower.get(curSpline) == null || twosPower.get(curSpline).isEmpty()) {
+    //   twosPower.put(curSpline, new HashMap<>());
+    //   double distT = 0;
+    //   double dt = 1.0 / Math.pow(2, optimizeTimes);
+    //   for(double t = 0; t < 1; t += dt) {
+    //     distT += curSpline.getPoint(t).distance(curSpline.getPoint(t+dt));
+    //     twosPower.get(curSpline).put(t, distT);
+    //   }
+    // }
+    // double max = 1;
+    // double min = 0;
+    // for(int i = 0; i < optimizeTimes; i++) {
+    //   if(twosPower.get(curSpline).get((max+min)/2) < distance - dist) {
+    //     min = (max+min)/2;
+    //   } else {
+    //     max = (max+min)/2;
+    //   }
+    // }
+    // return (max+min)/2+iOffset;
   }
 
 }
