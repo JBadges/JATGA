@@ -345,46 +345,13 @@ public class TrajectoryGenerator {
     }
     
     while (dist < distance && i + dI < splines.size()) {
-      Point a = splines.get((int) Math.floor(i)).getPoint(i % 1);
-      i += dI;
-      Point b = splines.get((int) Math.floor(i)).getPoint(i % 1);
-      dist += a.distance(b);
+      dist += Math.sqrt(splines.get((int)i).dx(i%1) * splines.get((int)i).dx(i%1) + splines.get((int)i).dy(i%1) * splines.get((int)i).dy(i%1)) * dI;
+      i+= dI;
     }
     if (increasing) {
       sumT.put(dist, i);
     }
     return i;
-
-    // QuinticHermiteSpline curSpline = splines.get(0);
-    // double dist = 0;
-    // int iOffset = 0;
-    // for(int i = 1; i < splines.size(); i++) {
-    //   if(distance > dist + splines.get(i).getArcLength()) {
-    //     dist += splines.get(i).getArcLength();
-    //     curSpline = splines.get(i);
-    //     iOffset++;
-    //   }
-    // }
-    // int optimizeTimes = 20;
-    // if(twosPower.get(curSpline) == null || twosPower.get(curSpline).isEmpty()) {
-    //   twosPower.put(curSpline, new HashMap<>());
-    //   double distT = 0;
-    //   double dt = 1.0 / Math.pow(2, optimizeTimes);
-    //   for(double t = 0; t < 1; t += dt) {
-    //     distT += curSpline.getPoint(t).distance(curSpline.getPoint(t+dt));
-    //     twosPower.get(curSpline).put(t, distT);
-    //   }
-    // }
-    // double max = 1;
-    // double min = 0;
-    // for(int i = 0; i < optimizeTimes; i++) {
-    //   if(twosPower.get(curSpline).get((max+min)/2) < distance - dist) {
-    //     min = (max+min)/2;
-    //   } else {
-    //     max = (max+min)/2;
-    //   }
-    // }
-    // return (max+min)/2+iOffset;
   }
 
 }

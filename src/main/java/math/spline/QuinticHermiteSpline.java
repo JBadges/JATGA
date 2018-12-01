@@ -98,11 +98,11 @@ public class QuinticHermiteSpline extends Spline {
     return new Point2D.Double(x, y);
   }
 
-  private double dx(double t) {
+  public double dx(double t) {
     return 5 * ax * t * t * t * t + 4 * bx * t * t * t + 3 * cx * t * t + 2 * dx * t + ex;
   }
 
-  private double dy(double t) {
+  public double dy(double t) {
     return 5 * ay * t * t * t * t + 4 * by * t * t * t + 3 * cy * t * t + 2 * dy * t + ey;
   }
 
