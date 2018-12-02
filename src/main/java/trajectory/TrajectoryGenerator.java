@@ -14,7 +14,7 @@ import math.spline.QuinticHermiteSpline;
 
 public class TrajectoryGenerator {
 
-  private double pointsPerPath = 100_000;
+  private int pointsPerPath = 100000;
   private double dI = 1e-6;
 
   public TrajectoryPoint[][] generate(RobotConstraints rc, boolean isReversed, Point... path) {
@@ -158,21 +158,21 @@ public class TrajectoryGenerator {
       dtIndex--;
 
       int endIndex = dtIndex;
-      double vL[] = new double[endIndex - startIndex];
-      double tL[] = new double[endIndex - startIndex];
-      double vR[] = new double[endIndex - startIndex];
-      double tR[] = new double[endIndex - startIndex];
+      double velocityLeftTempArray[] = new double[endIndex - startIndex];
+      double timeLeftTempArray[] = new double[endIndex - startIndex];
+      double velocityRightTempArray[] = new double[endIndex - startIndex];
+      double timeRightTempArray[] = new double[endIndex - startIndex];
       for (int k = startIndex; k < endIndex; k++) {
-        vL[k - startIndex] = skidTraj[0][k].velocity;
-        tL[k - startIndex] = skidTraj[0][k].time;
-        vR[k - startIndex] = skidTraj[1][k].velocity;
-        tR[k - startIndex] = skidTraj[1][k].time;
+        velocityLeftTempArray[k - startIndex] = skidTraj[0][k].velocity;
+        timeLeftTempArray[k - startIndex] = skidTraj[0][k].time;
+        velocityRightTempArray[k - startIndex] = skidTraj[1][k].velocity;
+        timeRightTempArray[k - startIndex] = skidTraj[1][k].time;
       }
-      LinearRegression lrL = new LinearRegression(tL, vL);
+      LinearRegression lrL = new LinearRegression(timeLeftTempArray, velocityLeftTempArray);
       normVt[0][loopCounter].time = loopCounter * wantedDt;
       normVt[0][loopCounter].velocity = lrL.predict((loopCounter) * wantedDt);
       normVt[0][loopCounter].t = skidTraj[0][endIndex].t;
-      LinearRegression lrR = new LinearRegression(tR, vR);
+      LinearRegression lrR = new LinearRegression(timeRightTempArray, velocityRightTempArray);
       normVt[1][loopCounter].time = loopCounter * wantedDt;
       normVt[1][loopCounter].velocity = lrR.predict((loopCounter) * wantedDt);
       normVt[1][loopCounter].t = skidTraj[1][endIndex].t;
@@ -269,7 +269,7 @@ public class TrajectoryGenerator {
     double dD = path.getTotalDistance() / pointsPerPath;
     // Vf^2 = Vi^2 + 2*a*d
     // Vf = sqrt(Vi^2+2*a*d)
-    VelocityDistanceTPoint[] maxVelocity = new VelocityDistanceTPoint[(int) (path.getTotalDistance() / dD)];
+    VelocityDistanceTPoint[] maxVelocity = new VelocityDistanceTPoint[pointsPerPath];
     for (int i = 0; i < maxVelocity.length; i++) {
       maxVelocity[i] = new VelocityDistanceTPoint();
     }
@@ -277,18 +277,20 @@ public class TrajectoryGenerator {
     System.out.println("FP Start");
     // Forward Propagation
     for (int i = 1; i < maxVelocity.length; i++) {
+      maxVelocity[i].t = sumToT(path, i * dD);
+      double t = maxVelocity[i].t;
       double currentVelocity = maxVelocity[i - 1].velocity;
       double maxReachable = Math.sqrt(currentVelocity * currentVelocity + 2 * constraints.maxAcceleration * dD);
-      double maxConstrained = Math.min(maxReachable, maximumAverageVelocityAtPoint(constraints, path, i * dD, true));
+      double maxConstrained = Math.min(maxReachable, maximumAverageVelocityAtPoint(constraints, path, t));
       maxVelocity[i].velocity = maxConstrained;
       maxVelocity[i].distance = i * dD;
-      maxVelocity[i].t = sumToT(path, maxVelocity[i].distance, true);
     }
     System.out.println("FP End");
 
     // End at zero velocity
     maxVelocity[maxVelocity.length - 1].velocity = 0;
 
+    System.out.println("BP Start");
     // Backwards Propagation
     for (int i = maxVelocity.length - 2; i >= 0; i--) {
       double currentVelocity = maxVelocity[i + 1].velocity;
@@ -296,20 +298,20 @@ public class TrajectoryGenerator {
       double maxConstrained = Math.min(maxReachable, maxVelocity[i].velocity);
       maxVelocity[i].velocity = maxConstrained;
       maxVelocity[i].distance = i * dD;
-      maxVelocity[i].t = sumToT(path, maxVelocity[i].distance, false);
     }
+    System.out.println("BP End");
 
+    sumT.clear();
     return maxVelocity;
   }
 
-  private double maximumAverageVelocityAtPoint(RobotConstraints constraints, Path path, double distance,
-      boolean increasing) {
+  private double maximumAverageVelocityAtPoint(RobotConstraints constraints, Path path, double t) {
     // Constraints
     // left and right velocites <= Vmax | (Vleft + Vright) / 2 = Vmax
     // Vleft / Vright = (r+w)/(r-w) | Vleft = (r+w)/(r-w) * Vright
     // (Vright - Vleft) / w = Vangular
 
-    double i = sumToT(path, distance, increasing);
+    double i = t;
     double radius = 1 / path.get((int) i).getCurvature(i % 1);
     if (!Double.isFinite(radius)) {
       return constraints.maxVelocity;
@@ -321,36 +323,26 @@ public class TrajectoryGenerator {
     dI = i;
   }
 
-  public void setPointsPerPath(double ppp) {
+  public void setPointsPerPath(int ppp) {
     pointsPerPath = ppp;
   }
 
   static TreeMap<Double, Double> sumT = new TreeMap<>();
-  // static HashMap<Spline,HashMap<Double, Double>> twosPower = new HashMap<>();
-  private double sumToT(Path splines, double distance, boolean increasing) {
+  private double sumToT(Path splines, double distance) {
     double i = 0;
     double dist = 0;
 
-    if(!increasing && sumT.isEmpty()) {
-      return 0;
-    }
-
-    if (increasing && !sumT.isEmpty()) {
+    if (!sumT.isEmpty()) {
       dist = sumT.lastEntry().getKey();
       i = sumT.lastEntry().getValue();
-    } else if (!sumT.isEmpty()) {
-      Entry<Double, Double> entry = sumT.pollLastEntry();
-      dist = entry.getKey();
-      i = entry.getValue();
     }
     
     while (dist < distance && i + dI < splines.size()) {
       dist += Math.sqrt(splines.get((int)i).dx(i%1) * splines.get((int)i).dx(i%1) + splines.get((int)i).dy(i%1) * splines.get((int)i).dy(i%1)) * dI;
-      i+= dI;
+      i += dI;
     }
-    if (increasing) {
-      sumT.put(dist, i);
-    }
+    sumT.put(dist, i);
+
     return i;
   }
 

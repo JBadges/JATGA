@@ -7,7 +7,7 @@ import math.Point;
 public class Path {
 
 	private List<QuinticHermiteSpline> path;
-	private final double dI = 0.00001;
+	private final double dT = 1e-6;
 
 	public Path(List<QuinticHermiteSpline> path) {
 		this.path = path;
@@ -27,10 +27,8 @@ public class Path {
 
 	public double getTotalDistance() {
 		double dist = 0;
-		for (double i = 0; i + dI < path.size(); i += dI) {
-			Point a = path.get((int) i).getPoint(i % 1);
-			Point b = path.get((int) (i + dI)).getPoint((i + dI) % 1);
-			dist += a.distance(b);
+		for (double t = 0; t < path.size(); t += dT) {
+			dist += Math.sqrt(path.get((int)t).dx(t%1) * path.get((int)t).dx(t%1) + path.get((int)t).dy(t%1) * path.get((int)t).dy(t%1)) * dT;
 		}
 		return dist;
 	}

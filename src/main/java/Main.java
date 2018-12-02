@@ -12,13 +12,13 @@ import trajectory.TrajectoryPoint;
 
 public class Main {
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     
 
     RobotConstraints rc = new RobotConstraints(3, 3, 3, 0.55926);
     double sTime = System.currentTimeMillis();
     TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0));
-    System.out.printf("Took %.2fs to generate the trajectories", (System.currentTimeMillis() - sTime) / 1000.0);
+    System.out.printf("Took %.2fs to generate the trajectories\n", (System.currentTimeMillis() - sTime) / 1000.0);
     BufferedWriter newPathWriter = null;
     List<Point> genPath = new ArrayList<>();
     genPath.add(new Point(0, 0));
