@@ -8,8 +8,9 @@ import org.junit.Test;
 
 import math.Point;
 import trajectory.RobotConstraints;
+import trajectory.State;
+import trajectory.Trajectory;
 import trajectory.TrajectoryGenerator;
-import trajectory.TrajectoryPoint;
 
 public class TrajectoryTest {
 
@@ -17,7 +18,7 @@ public class TrajectoryTest {
   public void straightPathAccuracy() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 0) };
-    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
+    Trajectory trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     // Accurate to 1 cm
@@ -49,14 +50,14 @@ public class TrajectoryTest {
   public void headingTest() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 0) };
-    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
+    Trajectory trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     double finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
     // Accurate to 1/100 of a radian
     assertEquals(0, finalHeading, 1e-2);
 
-    Point[] pathB = { new Point(0, 0, 0), new Point(0, 10, Math.PI / 2) };
+    Point[] pathB = { new Point(0, 0, 0), new Point(4, 10, Math.PI / 2) };
     trajs = new TrajectoryGenerator().generate(rc, true, pathB);
 
     genPath = testPath(trajs, rc);
@@ -64,7 +65,7 @@ public class TrajectoryTest {
     // Accurate to 1/100 of a radian
     assertEquals(Math.PI / 2, finalHeading, 1e-2);
 
-    Point[] pathC = { new Point(0, 0, 0), new Point(0, 10, Math.PI / 2), new Point(15, 20, 0),
+    Point[] pathC = { new Point(0, 0, 0), new Point(0, 10, Math.PI / 3), new Point(15, 20, Math.PI / 2),
         new Point(5, 10, Math.PI) };
     trajs = new TrajectoryGenerator().generate(rc, true, pathC);
 
@@ -80,7 +81,7 @@ public class TrajectoryTest {
     genPath = testPath(trajs, rc);
     finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
     // Accurate to 1/100 of a radian
-    assertEquals(0, trajs[0][0].getHeading(), 1e-2);
+    assertEquals(0, MathUtils.normalizeAngle(trajs.lastEntry().getValue().getHeading(), Math.PI), 1e-2);
     assertEquals(0, finalHeading, 1e-2);
   }
 
@@ -88,7 +89,7 @@ public class TrajectoryTest {
   public void totalTest() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0) };
-    TrajectoryPoint[][] trajs = new TrajectoryGenerator().generate(rc, false, pathA);
+    Trajectory trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     double finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
@@ -100,21 +101,22 @@ public class TrajectoryTest {
     assertEquals(0, finalHeading, 1e-2);
   }
 
-  private List<Point> testPath(TrajectoryPoint[][] trajs, RobotConstraints rc) {
+  private List<Point> testPath(Trajectory trajs, RobotConstraints rc) {
     List<Point> genPath = new ArrayList<>();
-    genPath.add(new Point(0, 0));
+    genPath.add(new Point(0, 0, 0));
     double heading = 0;
-    for (int i = 0; i < trajs[0].length; i++) {
-      TrajectoryPoint left = trajs[0][i];
-      TrajectoryPoint right = trajs[1][i];
-      double Dl = left.getVelocity() * left.getTimeStep();
-      double Dr = right.getVelocity() * right.getTimeStep();
+    double dT = 0.0002;
+    for (double t = 0; t < trajs.lastEntry().getKey(); t += dT) {
+      State left = trajs.getInterpolated(t).getLeftDrive();
+      State right = trajs.getInterpolated(t).getRightDrive();
+      double Dl = left.getVelocity() * dT;
+      double Dr = right.getVelocity() * dT;
       double newX = genPath.get(genPath.size() - 1).getX();
       double newY = genPath.get(genPath.size() - 1).getY();
       if (Math.abs(Dl - Dr) < 1.0e-10) { // basically going straight
-        double distT = (Dr + Dl) / 2.0;
-        newX += Math.cos(heading) * distT;
-        newY += Math.sin(heading) * distT;
+        double avgDist = (Dr + Dl) / 2.0;
+        newX += Math.cos(heading) * avgDist;
+        newY += Math.sin(heading) * avgDist;
       } else {
         double headingChange = (Dr - Dl) / rc.wheelbase;
         double radius = rc.wheelbase * (Dl + Dr) / (2 * (Dr - Dl));
