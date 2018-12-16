@@ -1,9 +1,11 @@
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeThat;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.util.MathUtils;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import math.Point;
@@ -19,8 +21,8 @@ public class TrajectoryTest {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 0) };
     Trajectory trajs = new TrajectoryGenerator().generate(rc, false, pathA);
-
     List<Point> genPath = testPath(trajs, rc);
+
     // Accurate to 1 cm
     assertEquals(10, genPath.get(genPath.size() - 1).getX(), 1e-2);
 
@@ -98,14 +100,14 @@ public class TrajectoryTest {
     // Accurate to 1 cm
     assertEquals(23, genPath.get(genPath.size() - 1).getY(), 1e-2);
     // Accurate to 1/100 of a radian
-    assertEquals(0, finalHeading, 1e-2);
+    assertEquals(0, finalHeading > Math.PI ? 0 : finalHeading, 1e-2);
   }
 
   private List<Point> testPath(Trajectory trajs, RobotConstraints rc) {
     List<Point> genPath = new ArrayList<>();
     genPath.add(new Point(0, 0, 0));
     double heading = 0;
-    double dT = 0.0002;
+    double dT = 0.002;
     for (double t = 0; t < trajs.lastEntry().getKey(); t += dT) {
       State left = trajs.getInterpolated(t).getLeftDrive();
       State right = trajs.getInterpolated(t).getRightDrive();
@@ -127,6 +129,33 @@ public class TrajectoryTest {
       genPath.add(new Point(newX, newY, heading));
     }
     return genPath;
+  }
+
+  @Test
+  public void constraints() {
+    RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
+    Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0) };
+    Trajectory traj = new TrajectoryGenerator().generate(rc, false, pathA);
+
+    testConstraints(traj, rc);
+
+    rc = new RobotConstraints(3, 5, 2, 1);
+    Point[] pathB = { new Point(0, 0, 0), new Point(10, 3, 2), new Point(5, 20, -1), new Point(10, 23, 0) };
+    traj = new TrajectoryGenerator().generate(rc, false, pathB);
+
+    testConstraints(traj, rc);
+  }
+
+  private void testConstraints(Trajectory traj, RobotConstraints rc) {
+    double dT = 0.002;
+    for(double t = 0; t < traj.lastKey(); t += dT) {
+      State left = traj.getInterpolated(t).getLeftDrive();
+      assumeThat(Math.abs(left.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
+      assumeThat(Math.abs(left.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+      State right = traj.getInterpolated(t).getRightDrive();
+      assumeThat(Math.abs(right.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
+      assumeThat(Math.abs(right.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+    }
   }
 
 }

@@ -6,11 +6,13 @@ package trajectory;
 public class State {
 
     private double time;
+    private double position;
     private double velocity;
     private double acceleration;
 
-    public State(double time, double velocity, double acceleration) {
+    public State(double time, double position, double velocity, double acceleration) {
         this.time = time;
+        this.position = position;
         this.velocity = velocity;
         this.acceleration = acceleration;
     }
@@ -21,6 +23,14 @@ public class State {
 
     public void setTime(double time) {
         this.time = time;
+    }
+
+    public double getPosition() {
+        return position;
+    }
+
+    public void setPosition(double position) {
+        this.position = position;
     }
 
     public double getVelocity() {
@@ -41,7 +51,12 @@ public class State {
 
     @Override
     protected State clone() {
-        return new State(time, velocity, acceleration);
+        return new State(time, position, velocity, acceleration);
+    }
+
+    @Override
+    public String toString() {
+        return time + ", " + position + ", " + velocity + ", " + acceleration + ", "; 
     }
 
 }

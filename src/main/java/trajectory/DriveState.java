@@ -45,4 +45,13 @@ public class DriveState {
         return new DriveState(leftDrive.clone(), rightDrive.clone(), heading);
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(leftDrive + ", ");
+        sb.append(rightDrive + ", ");
+        sb.append(heading + ",\n");
+        return sb.toString();
+    }
+
 }

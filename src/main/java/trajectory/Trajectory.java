@@ -18,6 +18,9 @@ public class Trajectory extends TreeMap<Double, DriveState> {
     }
 
     public DriveState getInterpolated(Double time) {
+        if(time == 0.0) {
+            return new DriveState(new State(0,0,0,0), new State(0, 0, 0, 0), 0);
+        }
         DriveState gotval = get(time);
         if (gotval == null) {
             /** Get surrounding keys for interpolation */
@@ -38,16 +41,18 @@ public class Trajectory extends TreeMap<Double, DriveState> {
             /** Get surrounding values for interpolation */
             DriveState topElem = get(topBound);
             DriveState bottomElem = get(bottomBound);
-            
-            double leftAdjVel = new Line(topBound, topElem.getLeftDrive().getVelocity(), bottomBound, bottomElem.getLeftDrive().getVelocity()).get(time);
-            double leftAdjAcc = new Line(topBound, topElem.getLeftDrive().getAcceleration(), bottomBound, bottomElem.getLeftDrive().getAcceleration()).get(time);
-            State leftState = new State(time, leftAdjVel, leftAdjAcc);
 
-            double rightAdjVel = new Line(topBound, topElem.getRightDrive().getVelocity(), bottomBound, bottomElem.getRightDrive().getVelocity()).get(time);
-            double rightAdjAcc = new Line(topBound, topElem.getRightDrive().getAcceleration(), bottomBound, bottomElem.getRightDrive().getAcceleration()).get(time);
-            State rightState = new State(time, rightAdjVel, rightAdjAcc);
+            double leftAdjPosition = new Line(bottomBound, bottomElem.getLeftDrive().getPosition(), topBound, topElem.getLeftDrive().getPosition()).get(time);
+            double leftAdjVel = new Line(bottomBound, bottomElem.getLeftDrive().getVelocity(), topBound, topElem.getLeftDrive().getVelocity()).get(time);
+            double leftAdjAcc = new Line(bottomBound, bottomElem.getLeftDrive().getAcceleration(), topBound, topElem.getLeftDrive().getAcceleration()).get(time);
+            State leftState = new State(time, leftAdjPosition, leftAdjVel, leftAdjAcc);
 
-            double adjHeading = new Line(topBound, topElem.getHeading(), bottomBound, bottomElem.getHeading()).get(time);
+            double rightAdjPosition = new Line(bottomBound, bottomElem.getRightDrive().getPosition(), topBound, topElem.getRightDrive().getPosition()).get(time);
+            double rightAdjVel = new Line(bottomBound, bottomElem.getRightDrive().getVelocity(), topBound, topElem.getRightDrive().getVelocity()).get(time);
+            double rightAdjAcc = new Line(bottomBound, bottomElem.getRightDrive().getAcceleration(), topBound, topElem.getRightDrive().getAcceleration()).get(time);
+            State rightState = new State(time, rightAdjPosition, rightAdjVel, rightAdjAcc);
+
+            double adjHeading = new Line(bottomBound, bottomElem.getHeading(), topBound, topElem.getHeading()).get(time);
 
             return new DriveState(leftState, rightState, adjHeading);
         } else {

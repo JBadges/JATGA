@@ -26,27 +26,32 @@ public class TrajectoryGenerator {
 
   public Trajectory generate(Path path, boolean reversed, RobotConstraints rc) {
     ArrayList<ArrayList<Double>> avgVelocities = maxAcheivableVelocityForPath(path, rc);
-    return generateTrajectory(path, reversed, avgVelocities);
+    return generateTrajectory(path, reversed, rc, avgVelocities);
   }
 
-  private Trajectory generateTrajectory(Path path, boolean reversed, ArrayList<ArrayList<Double>> velocites) {
-    sumT.clear();
+  private Trajectory generateTrajectory(Path path, boolean reversed, RobotConstraints rc, ArrayList<ArrayList<Double>> velocites) {
     Trajectory traj = new Trajectory();
-    traj.put(0.0, new DriveState(new State(0, 0, 0), new State(0, 0, 0), 0));
+    traj.put(0.0, new DriveState(new State(0, 0, 0, rc.maxAcceleration), new State(0, 0, 0, -rc.maxAcceleration), 0));
 
     double dD = path.getTotalDistance() / pointsPerPath;
 
-    for (int i = 1; i < velocites.get(0).size(); i++) {
-      double avgVel = (velocites.get(0).get(i) + velocites.get(1).get(i)) / 2;
-      double prevAvgVel = (velocites.get(0).get(i - 1) + velocites.get(1).get(i - 1)) / 2;
-      double dT = dD / ((avgVel + prevAvgVel) / 2);
-      double leftAcceleration = (velocites.get(0).get(i) - velocites.get(0).get(i - 1)) / dT;
-      double rightAcceleration = (velocites.get(1).get(i) - velocites.get(1).get(i - 1)) / dT;
-      double time = traj.lastEntry().getValue().getLeftDrive().getTime() + dT;
-      traj.put(time, new DriveState(new State(time, velocites.get(0).get(i), leftAcceleration),
-          new State(time, velocites.get(1).get(i), rightAcceleration), velocites.get(2).get(i)));
-    }
 
+    double leftDist = 0;
+    double rightDist = 0;
+    for (int i = 0; i < velocites.get(0).size()-1; i++) {
+      double avgVel = (velocites.get(0).get(i+1) + velocites.get(1).get(i+1)) / 2;
+      double prevAvgVel = (velocites.get(0).get(i) + velocites.get(1).get(i)) / 2;
+      double dT = dD / ((avgVel + prevAvgVel)/2);
+      double leftChangeInDist = velocites.get(0).get(i) * dT;
+      leftDist += leftChangeInDist;
+      double rightChangeInDist = velocites.get(1).get(i) * dT;
+      rightDist += rightChangeInDist;
+      double leftAcceleration = (velocites.get(0).get(i+1) - velocites.get(0).get(i)) / dT;
+      double rightAcceleration = (velocites.get(1).get(i+1) - velocites.get(1).get(i)) / dT;
+      double time = traj.lastEntry().getValue().getLeftDrive().getTime() + dT;
+      traj.put(time, new DriveState(new State(time, leftDist, velocites.get(0).get(i), leftAcceleration),
+          new State(time, rightDist, velocites.get(1).get(i), rightAcceleration), velocites.get(2).get(i)));
+    }
     for (Entry<Double, DriveState> dds : traj.entrySet()) {
       DriveState ds = dds.getValue();
       ds.setHeading(Point.normalize(ds.getHeading(), Math.PI));
@@ -66,7 +71,6 @@ public class TrajectoryGenerator {
         }
       }
     } while (changed);
-
     if (reversed) {
       for (Entry<Double, DriveState> dds : traj.entrySet()) {
         DriveState ds = dds.getValue();
@@ -79,34 +83,18 @@ public class TrajectoryGenerator {
         ds.setRightDrive(temp);
       }
     }
-
-    String filename = "test";
-
-    if (!(filename == null || filename == "")) {
-      FileWriter fw = null;
-      try {
-        fw = new FileWriter(new File(filename + ".csv"));
-        fw.flush();
-        fw.write("Heading,\n");
-        for (Entry<Double, DriveState> dds : traj.entrySet()) {
-          fw.write(dds.getValue().getHeading()+",\n");
-        }
-        fw.close();
-      } catch (Exception e) {
-
-      }
-    }
-
     return traj;
   }
 
   private ArrayList<ArrayList<Double>> maxAcheivableVelocityForPath(Path path, RobotConstraints rc) {
-    // vi=sqrt(vo+2ad)
+    sumT.clear();
+    // vi=sqrt(vo^2+2ad)
     ArrayList<Double> avgVelocities = new ArrayList<>();
     ArrayList<ArrayList<Double>> velocities = new ArrayList<ArrayList<Double>>(2);
     velocities.add(new ArrayList<Double>());
     velocities.add(new ArrayList<Double>());
     velocities.add(new ArrayList<Double>());
+
     ArrayList<Double> ts = new ArrayList<>();
 
     double dD = path.getTotalDistance() / pointsPerPath;
@@ -117,18 +105,16 @@ public class TrajectoryGenerator {
       double t = sumToT(path, dD * i);
       ts.add(t);
       double lastVelocity = avgVelocities.get(i - 1);
-      double accelerateableVelocity = Math.sqrt(lastVelocity + 2 * rc.maxAcceleration * dD);
+      double accelerateableVelocity = Math.sqrt(lastVelocity * lastVelocity + 2 * rc.maxAcceleration * dD);
       double maxAcheiveableVelocityForCurvature = maximumAverageVelocityAtPoint(rc, path, t);
       avgVelocities.add(Math.min(accelerateableVelocity, maxAcheiveableVelocityForCurvature));
     }
 
     avgVelocities.set(avgVelocities.size() - 1, 0.0);
     for (int i = avgVelocities.size() - 2; i >= 0; i--) {
-      double t = sumToT(path, dD * i);
       double lastVelocity = avgVelocities.get(i + 1);
-      double accelerateableVelocity = Math.sqrt(lastVelocity + 2 * rc.maxAcceleration * dD);
-      double maxAcheiveableVelocityForCurvature = maximumAverageVelocityAtPoint(rc, path, t);
-      avgVelocities.set(i, Math.min(accelerateableVelocity, maxAcheiveableVelocityForCurvature));
+      double accelerateableVelocity = Math.sqrt(lastVelocity * lastVelocity + 2 * rc.maxAcceleration * dD);
+      avgVelocities.set(i, Math.min(accelerateableVelocity, avgVelocities.get(i)));
     }
 
     for (int i = 0; i < ts.size(); i++) {
@@ -136,8 +122,7 @@ public class TrajectoryGenerator {
       double radius = 1 / curvature;
 
       if (Double.isFinite(radius)) {
-        velocities.get(0)
-            .add((avgVelocities.get(i) * 2) / ((radius + rc.wheelbase / 2) / (radius - rc.wheelbase / 2) + 1));
+        velocities.get(0).add((avgVelocities.get(i) * 2) / ((radius + rc.wheelbase / 2) / (radius - rc.wheelbase / 2) + 1));
         velocities.get(1).add(avgVelocities.get(i) * 2 - velocities.get(0).get(velocities.get(0).size() - 1));
       } else {
         velocities.get(0).add(avgVelocities.get(i));
@@ -182,8 +167,7 @@ public class TrajectoryGenerator {
     }
 
     while (dist < distance && i + dI < splines.size()) {
-      dist += Math.sqrt(splines.get((int) i).dx(i % 1) * splines.get((int) i).dx(i % 1)
-          + splines.get((int) i).dy(i % 1) * splines.get((int) i).dy(i % 1)) * dI;
+      dist += Math.sqrt(splines.get((int) i).dx(i % 1) * splines.get((int) i).dx(i % 1) + splines.get((int) i).dy(i % 1) * splines.get((int) i).dy(i % 1)) * dI;
       i += dI;
     }
     sumT.put(dist, i);
