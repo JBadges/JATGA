@@ -3,6 +3,7 @@ import static org.junit.Assume.assumeThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 
 import org.apache.commons.math3.util.MathUtils;
 import org.hamcrest.Matchers;
@@ -152,9 +153,12 @@ public class TrajectoryTest {
       State left = traj.getInterpolated(t).getLeftDrive();
       assumeThat(Math.abs(left.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
       assumeThat(Math.abs(left.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+
       State right = traj.getInterpolated(t).getRightDrive();
       assumeThat(Math.abs(right.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
       assumeThat(Math.abs(right.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+
+      assumeThat(Math.abs((right.getVelocity()-left.getVelocity())/rc.wheelbase), Matchers.lessThanOrEqualTo(rc.maxAngular));
     }
   }
 
