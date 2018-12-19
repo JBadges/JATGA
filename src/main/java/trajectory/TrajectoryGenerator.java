@@ -1,7 +1,5 @@
 package trajectory;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -13,7 +11,7 @@ import math.spline.QuinticHermiteSpline;
 
 public class TrajectoryGenerator {
 
-  private int pointsPerPath = 100_000;
+  private int pointsPerPath = 10_000;
   private double dI = 1e-6;
 
   public Trajectory generate(RobotConstraints rc, boolean reversed, Point... points) {
@@ -33,7 +31,7 @@ public class TrajectoryGenerator {
     Trajectory traj = new Trajectory();
     traj.put(0.0, new DriveState(new State(0, 0, 0, rc.maxAcceleration), new State(0, 0, 0, -rc.maxAcceleration), 0));
 
-    double dD = path.getTotalDistance() / pointsPerPath;
+    double dD = path.getTotalDistance() / (pointsPerPath * path.size());
 
 
     double leftDist = 0;
@@ -74,10 +72,12 @@ public class TrajectoryGenerator {
     if (reversed) {
       for (Entry<Double, DriveState> dds : traj.entrySet()) {
         DriveState ds = dds.getValue();
+        ds.getLeftDrive().setPosition(-ds.getLeftDrive().getPosition());
         ds.getLeftDrive().setVelocity(-ds.getLeftDrive().getVelocity());
         ds.getLeftDrive().setAcceleration(-ds.getLeftDrive().getAcceleration());
         ds.getRightDrive().setVelocity(-ds.getRightDrive().getVelocity());
         ds.getRightDrive().setAcceleration(-ds.getRightDrive().getAcceleration());
+        ds.getRightDrive().setPosition(-ds.getRightDrive().getPosition());
         State temp = ds.getLeftDrive();
         ds.setLeftDrive(ds.getRightDrive());
         ds.setRightDrive(temp);
@@ -97,11 +97,12 @@ public class TrajectoryGenerator {
 
     ArrayList<Double> ts = new ArrayList<>();
 
-    double dD = path.getTotalDistance() / pointsPerPath;
+    double size = pointsPerPath * path.size();
+    double dD = path.getTotalDistance() / size;
 
     avgVelocities.add(0.0);
     ts.add(0.0);
-    for (int i = 1; i < pointsPerPath; i++) {
+    for (int i = 1; i < size; i++) {
       double t = sumToT(path, dD * i);
       ts.add(t);
       double lastVelocity = avgVelocities.get(i - 1);

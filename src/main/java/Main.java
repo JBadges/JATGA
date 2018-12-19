@@ -13,12 +13,12 @@ public class Main {
     Trajectory trajs = new TrajectoryGenerator().generate(rc, false, new Point(0, 0, 0), new Point(10, 0, 0));
     System.out.printf("Took %.2fs to generate the trajectories\n", (System.currentTimeMillis() - sTime) / 1000.0);
 
-    try {
-      FileWriter fw = new FileWriter(new File("test.csv"));
-      for(double t = 0; t < trajs.lastKey(); t += 0.02) {
-        fw.write(trajs.getInterpolated(t).toString());
-      }
-    } catch (Exception e) {}
+    // try {
+    //   FileWriter fw = new FileWriter(new File("test.csv"));
+    //   for(double t = 0; t < trajs.lastKey(); t += 0.02) {
+    //     fw.write(trajs.getInterpolated(t).toString());
+    //   }
+    // } catch (Exception e) {}
     // QuinticHermiteSpline spline = new QuinticHermiteSpline(new Point(0, 0, 0), new Point(100, 100, 0));
     // {
     //   double startTime = System.currentTimeMillis();

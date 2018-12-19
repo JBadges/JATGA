@@ -47,6 +47,11 @@ public class TrajectoryTest {
     genPath = testPath(trajs, rc);
     // Accurate to 1 cm
     assertEquals(-10, genPath.get(genPath.size() - 1).getX(), 1e-2);
+
+    Point[] pathE = { new Point(0, 0, 0), new Point(10, 0, 0) };
+    trajs = new TrajectoryGenerator().generate(rc, true, pathE);
+    assertEquals(-10, trajs.lastEntry().getValue().getLeftDrive().getPosition(), 1e-2);
+    assertEquals(-10, trajs.lastEntry().getValue().getRightDrive().getPosition(), 1e-2);
   }
 
   @Test
