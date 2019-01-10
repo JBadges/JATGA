@@ -1,11 +1,9 @@
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeThat;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.util.MathUtils;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import math.Point;
@@ -13,6 +11,9 @@ import trajectory.RobotConstraints;
 import trajectory.State;
 import trajectory.Trajectory;
 import trajectory.TrajectoryGenerator;
+
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TrajectoryTest {
 
@@ -115,15 +116,15 @@ public class TrajectoryTest {
   @Test
   public void totalTest() {
     RobotConstraints rc = new RobotConstraints(3, 5, 2, 1);
-    Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 20, 1), new Point(10, 23, 0) };
+    Point[] pathA = { new Point(0, 0, 0), new Point(10, 0, 2), new Point(5, 10, 1), new Point(6, 15, 0) };
     Trajectory trajs = new TrajectoryGenerator().generate(rc, false, pathA);
 
     List<Point> genPath = testPath(trajs, rc);
     double finalHeading = MathUtils.normalizeAngle(genPath.get(genPath.size() - 1).getHeading(), Math.PI);
     // Accurate to 1 cm
-    assertEquals(10, genPath.get(genPath.size() - 1).getX(), 1e-2);
+    assertEquals(6, genPath.get(genPath.size() - 1).getX(), 1e-2);
     // Accurate to 1 cm
-    assertEquals(23, genPath.get(genPath.size() - 1).getY(), 1e-2);
+    assertEquals(15, genPath.get(genPath.size() - 1).getY(), 1e-2);
     // Accurate to 1/100 of a radian
     assertEquals(0, finalHeading > Math.PI ? finalHeading - Math.PI*2 : finalHeading, 1e-2);
   }
@@ -136,9 +137,15 @@ public class TrajectoryTest {
 
     testConstraints(traj, rc);
 
-    rc = new RobotConstraints(3, 5, 2, 1);
     Point[] pathB = { new Point(0, 0, 0), new Point(10, 3, 2), new Point(5, 20, -1), new Point(10, 23, 0) };
     traj = new TrajectoryGenerator().generate(rc, false, pathB);
+
+    testConstraints(traj, rc);
+
+    traj = new TrajectoryGenerator().generate(rc, false, new Point(0, 0, 0),
+    new Point(10, 10, Math.PI),
+    new Point(20, -20, Math.PI*2),
+    new Point(30, 30, 0));
 
     testConstraints(traj, rc);
   }
@@ -147,14 +154,14 @@ public class TrajectoryTest {
     double dT = 0.002;
     for(double t = 0; t < traj.lastKey(); t += dT) {
       State left = traj.getInterpolated(t).getLeftDrive();
-      assumeThat(Math.abs(left.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
-      assumeThat(Math.abs(left.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+      assertThat(Math.abs(left.getVelocity()), lessThanOrEqualTo(rc.maxVelocity * 1.05));
+      assertThat(Math.abs(left.getAcceleration()), lessThanOrEqualTo(rc.maxAcceleration * 1.05));
 
       State right = traj.getInterpolated(t).getRightDrive();
-      assumeThat(Math.abs(right.getVelocity()), Matchers.lessThanOrEqualTo(rc.maxVelocity));
-      assumeThat(Math.abs(right.getAcceleration()), Matchers.lessThanOrEqualTo(rc.maxAcceleration));
+      assertThat(Math.abs(right.getVelocity()), lessThanOrEqualTo(rc.maxVelocity * 1.05));
+      assertThat(Math.abs(right.getAcceleration()), lessThanOrEqualTo(rc.maxAcceleration * 1.05));
 
-      assumeThat(Math.abs((right.getVelocity()-left.getVelocity())/rc.wheelbase), Matchers.lessThanOrEqualTo(rc.maxAngular));
+      assertThat(Math.abs((right.getVelocity()-left.getVelocity())/rc.wheelbase), lessThanOrEqualTo(rc.maxAngular * 1.05));    
     }
   }
 

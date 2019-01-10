@@ -1,5 +1,6 @@
 package trajectory;
 
+import java.util.HashMap;
 import java.util.TreeMap;
 
 import math.Line;
@@ -11,6 +12,10 @@ public class Trajectory extends TreeMap<Double, DriveState> {
 
     public Trajectory() {
         super();
+    }
+
+    public Trajectory(HashMap<Double, DriveState> map) {
+        super(map);
     }
     
     public DriveState put(Double d, DriveState s) {
@@ -59,6 +64,8 @@ public class Trajectory extends TreeMap<Double, DriveState> {
             return gotval;
         }
     }
+
+    
     
 
 }

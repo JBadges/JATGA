@@ -43,7 +43,7 @@ public class TrajectoryGenerator {
 
   public Trajectory generate(Path path, boolean reversed, RobotConstraints rc) {
     double time = System.currentTimeMillis();
-    ArrayList<ArrayList<Double>> avgVelocities = maxAcheivableVelocityForPath(path, rc);
+    double[][] avgVelocities = maxAcheivableVelocityForPath(path, rc);
     System.out.println("Time for maxAcheivableVelocityForPath : " + (System.currentTimeMillis() - time));
     time = System.currentTimeMillis();
     traj = generateTrajectory(path, reversed, rc, avgVelocities);
@@ -51,7 +51,7 @@ public class TrajectoryGenerator {
     return traj;
   }
 
-  private Trajectory generateTrajectory(Path path, boolean reversed, RobotConstraints rc, ArrayList<ArrayList<Double>> velocites) {
+  private Trajectory generateTrajectory(Path path, boolean reversed, RobotConstraints rc, double[][] velocites) {
     Trajectory traj = new Trajectory();
     traj.put(0.0, new DriveState(new State(0, 0, 0, rc.maxAcceleration), new State(0, 0, 0, rc.maxAcceleration), 0));
 
@@ -63,29 +63,24 @@ public class TrajectoryGenerator {
     double rightNext;
 
     double sTime = System.currentTimeMillis();
-    for (int i = 0; i < velocites.get(0).size()-1; i++) {
-      leftCur = velocites.get(0).get(i);
-      leftNext = velocites.get(0).get(i+1);
-      rightCur = velocites.get(1).get(i);
-      rightNext = velocites.get(1).get(i+1);
-      double prevAvgVel = (leftCur + rightCur) / 2;
-      double dT = dD / ((((leftNext + rightNext) / 2) + prevAvgVel)/2);
-      double leftChangeInDist = leftCur * dT;
-      leftDist += leftChangeInDist;
-      double rightChangeInDist = rightCur * dT;
-      rightDist += rightChangeInDist;
+    for (int i = 0; i < velocites[0].length-1; i++) {
+      leftCur = velocites[0][i];
+      leftNext = velocites[0][i+1];
+      rightCur = velocites[1][i];
+      rightNext = velocites[1][i+1];
+      double curAvgVel = (leftCur + rightCur) / 2;
+      double nextAvgVel = (leftNext + rightNext) / 2;
+      double dT = dD / ((curAvgVel + nextAvgVel)/2);
+      leftDist += leftCur * dT;
+      rightDist += rightCur * dT;
       double leftAcceleration = (leftNext - leftCur) / dT;
       double rightAcceleration = (rightNext - rightCur) / dT;
       double time = traj.lastEntry().getValue().getLeftDrive().getTime() + dT;
+
       traj.put(time, new DriveState(new State(time, leftDist, leftCur, leftAcceleration),
-          new State(time, rightDist, rightCur, rightAcceleration), velocites.get(2).get(i)));
+          new State(time, rightDist, rightCur, rightAcceleration), velocites[2][i]));
     }
     System.out.println("Time for traj : " + (System.currentTimeMillis() - sTime));
-    // for (Entry<Double, DriveState> dds : traj.entrySet()) {
-    //   DriveState ds = dds.getValue();
-    //   ds.setHeading(Point.normalize(ds.getHeading(), Math.PI));
-    //   ds.setHeading(Point.normalize(ds.getHeading(), Math.PI));
-    // }
     
     sTime = System.currentTimeMillis();
     boolean changed;
@@ -123,68 +118,111 @@ public class TrajectoryGenerator {
     return traj;
   }
 
-  private ArrayList<ArrayList<Double>> maxAcheivableVelocityForPath(Path path, RobotConstraints rc) {
+  private double[][] maxAcheivableVelocityForPath(Path path, RobotConstraints rc) {
     lastDistance = -1;
     lastT = -1;
-
-    // vi=sqrt(vo^2+2ad)
-    ArrayList<Double> avgVelocities = new ArrayList<>();
-    ArrayList<ArrayList<Double>> velocities = new ArrayList<ArrayList<Double>>();
-    velocities.add(new ArrayList<Double>());
-    velocities.add(new ArrayList<Double>());
-    velocities.add(new ArrayList<Double>());
-
-    ArrayList<Double> ts = new ArrayList<>();
     double size = pointsPerPath * path.size();
     dD = path.getTotalDistance() / size;
+
+    // vf=sqrt(vo^2+2ad)
+    double[] avgVelocities = new double[(int) size];
+    double[][] velocities = new double[3][(int) size];
+
+    ArrayList<Double> ts = new ArrayList<>();
     
-    avgVelocities.add(0.0);
+    avgVelocities[0] = 0.0;
     ts.add(0.0);
     
-    for (int i = 1; i < size; i++) {
+    double sTime = System.currentTimeMillis();
+    for (int i = 1; i < avgVelocities.length; i++) {
       double t = sumToT(path, dD * i);
       ts.add(t);
-      double lastVelocity = avgVelocities.get(i - 1);
+      double lastVelocity = avgVelocities[i - 1];
       double accelerateableVelocity = Math.sqrt(lastVelocity * lastVelocity + 2 * rc.maxAcceleration * dD);
-      double maxAcheiveableVelocityForCurvature = maximumAverageVelocityAtPoint(rc, path, t);
-      avgVelocities.add(Math.min(accelerateableVelocity, maxAcheiveableVelocityForCurvature));
+      double maxAcheiveableVelocityForCurvature = maximumAverageVelocityAtPoint(rc, lastVelocity, ts.get(i-1), path, t);
+      avgVelocities[i] = Math.min(accelerateableVelocity, maxAcheiveableVelocityForCurvature);
     }
+    System.out.println("Time for forward prop: " + (System.currentTimeMillis() - sTime));
 
-    avgVelocities.set(avgVelocities.size() - 1, 0.0);
-    for (int i = avgVelocities.size() - 2; i >= 0; i--) {
-      double lastVelocity = avgVelocities.get(i + 1);
+    sTime = System.currentTimeMillis();
+    avgVelocities[avgVelocities.length-1] = 0.0;
+    for (int i = avgVelocities.length - 2; i > 0; i--) {
+      double lastVelocity = avgVelocities[i+1];
       double accelerateableVelocity = Math.sqrt(lastVelocity * lastVelocity + 2 * rc.maxAcceleration * dD);
-      avgVelocities.set(i, Math.min(accelerateableVelocity, avgVelocities.get(i)));
+      avgVelocities[i] = Math.min(accelerateableVelocity, avgVelocities[i]);
+      avgVelocities[i] = Math.min(maximumAverageVelocityAtPoint(rc, lastVelocity, ts.get(i+1), path, ts.get(i)), avgVelocities[i]);
     }
+    System.out.println("Time for backwards prop: " + (System.currentTimeMillis() - sTime));
 
+    sTime = System.currentTimeMillis();
     for (int i = 0; i < ts.size(); i++) {
       double curvature = path.get((int) (ts.get(i).doubleValue())).getCurvature(ts.get(i) % 1);
       double radius = 1 / curvature;
 
       if (Double.isFinite(radius)) {
-        velocities.get(0).add((avgVelocities.get(i) * 2) / ((radius + rc.wheelbase / 2) / (radius - rc.wheelbase / 2) + 1));
-        velocities.get(1).add(avgVelocities.get(i) * 2 - velocities.get(0).get(i));
+        velocities[0][i] = ((avgVelocities[i] * 2) / ((radius + rc.wheelbase / 2) / (radius - rc.wheelbase / 2) + 1));
+        velocities[1][i] = avgVelocities[i] * 2 - velocities[0][i];
       } else {
-        velocities.get(0).add(avgVelocities.get(i));
-        velocities.get(1).add(avgVelocities.get(i));
+        velocities[0][i] = avgVelocities[i];
+        velocities[1][i] = avgVelocities[i];
       }
-      velocities.get(2).add(path.get((int) (ts.get(i).doubleValue())).getHeading(ts.get(i) % 1));
+      velocities[2][i] = path.get((int) (ts.get(i).doubleValue())).getHeading(ts.get(i) % 1);
     }
+    System.out.println("Time for velocities: " + (System.currentTimeMillis() - sTime));
 
     return velocities;
   }
 
-  private double maximumAverageVelocityAtPoint(RobotConstraints constraints, Path path, double t) {
+  private double maximumAverageVelocityAtPoint(RobotConstraints constraints, double lastVel, double lastT, Path path, double t) {
     // Constraints
-    // left and right velocites <= Vmax | (Vleft + Vright) / 2 = Vmax
+    //  |left vel | <= Vmax & |right vel | <= Vmax 
+    // | (Vleft + Vright) / 2 | <= Vmax
     // Vleft / Vright = (r+w)/(r-w) | Vleft = (r+w)/(r-w) * Vright
     // (Vright - Vleft) / w = Vangular
+    // |left accel | <= Amax & |right accel | <= Amax
+
+    double topAvgVel = -1;
+    double topLeftVel = 0;
+    double topRightVel = 0;
+    double lastLeftVel = 0;
+    double lastRightVel = 0;
+
 
     double radius = 1 / path.get((int) t).getCurvature(t % 1);
     if (!Double.isFinite(radius)) {
-      return constraints.maxVelocity;
+      topAvgVel = constraints.maxVelocity;
+      topLeftVel = constraints.maxVelocity;
+      topRightVel = constraints.maxVelocity;
+    } else {
+      topAvgVel = (Math.abs(radius) * constraints.maxVelocity) / (Math.abs(radius) + constraints.wheelbase / 2);
+      topLeftVel = ((topAvgVel * 2) / ((radius + constraints.wheelbase / 2) / (radius - constraints.wheelbase / 2) + 1));
+      topRightVel = topAvgVel * 2 - topLeftVel;
     }
-    return (Math.abs(radius) * constraints.maxVelocity) / (Math.abs(radius) + constraints.wheelbase / 2);
+
+    double lastRadius = 1 / path.get((int) lastT).getCurvature(lastT % 1);
+    double dLeft;
+    double dRight;
+    if (!Double.isFinite(lastRadius)) {
+      lastLeftVel = lastVel;
+      lastRightVel = lastVel;
+      dLeft = dD;
+      dRight = dD;
+    } else {
+      lastLeftVel = (lastVel * 2) / ((lastRadius + constraints.wheelbase / 2) / (lastRadius - constraints.wheelbase / 2) + 1);
+      lastRightVel = lastVel * 2 - lastLeftVel;
+      dLeft = (1+constraints.wheelbase/(2*lastRadius))*dD;
+      dRight = (1-constraints.wheelbase/(2*lastRadius))*dD;
+    }
+    
+    double maxLeft = Math.sqrt(lastLeftVel * lastLeftVel + 2 * constraints.maxAcceleration * dLeft);
+    double maxRight = Math.sqrt(lastRightVel * lastRightVel + 2 * constraints.maxAcceleration * dRight);
+    if(Math.abs(maxLeft) < Math.abs(topLeftVel) || Math.abs(maxRight) < Math.abs(topRightVel)) {
+      double scalar = Math.min(Math.abs(maxRight)/Math.abs(topRightVel),Math.abs(maxLeft)/Math.abs(topLeftVel));
+      topLeftVel *= scalar;
+      topRightVel *= scalar;
+    }
+
+    return (topLeftVel + topRightVel)/2;
   }
 
   public void setDI(double i) {

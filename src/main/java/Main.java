@@ -2,8 +2,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import math.Point;
+import trajectory.DriveState;
 import trajectory.RobotConstraints;
 import trajectory.State;
 import trajectory.Trajectory;
@@ -19,16 +22,21 @@ public class Main {
     RobotConstraints rc = new RobotConstraints(5.1816, 3, 3, 0.55926);
     TrajectoryGenerator tg = new TrajectoryGenerator();
     double sTime = System.currentTimeMillis();
+    Trajectory trajs = tg.generate(rc, false, 
+      new Point(0, 0, 0),
+      new Point(10, 10, Math.PI),
+      new Point(20, -20, Math.PI*2),
+      new Point(30, 30, 0)
+    );
     // Trajectory trajs = tg.generate(rc, false, 
     //   new Point(0, 0, 0),
-    //   new Point(10, 10, Math.PI),
-    //   new Point(20, -20, Math.PI*2),
-    //   new Point(30, 30, 0)
+    //   new Point(1, 0, 0)
     // );
-    Trajectory trajs = tg.generate(rc, false, new Point(0, 0, 0), new Point(4, 4, Math.PI/2));
+    // Trajectory trajs = tg.generate(rc, false, new Point(0, 0, 0), new Point(4, 4, Math.PI/2));
     System.out.printf("Took %.0fms to generate the trajectories\n", (System.currentTimeMillis() - sTime));
     System.out.printf("It will take %.2fs to follow the path\n", trajs.lastKey());
-    // saveXYToFile(trajs, "test", dt, rc, 0);
+    saveTrajToFile(trajs, "ttest", dt);
+    saveXYToFile(trajs, "line", dt, rc, 0);
 
     // trajs = tg.generate(rc, false, new Point(95.28 * METERS_PER_INCH, 0, 0), new Point(220.25 * METERS_PER_INCH, 0, 0));
     // System.out.printf("Took %.2fs to generate the trajectories\n", (System.currentTimeMillis() - sTime) / 1000.0);
@@ -147,6 +155,20 @@ public class Main {
       for(Point p : genPath) {
         fw.write(p.getX() + ", " + p.getY() + ", " + p.getHeading() + "\n");
       }
+    } catch (Exception e) {}
+  }
+
+  public static void saveTrajToFile(Trajectory traj, String name, double dt) {
+     try {
+      FileWriter fw = new FileWriter(new File(name + ".csv"));
+      Set<Entry<Double, DriveState>> set = traj.entrySet();
+      // for(double t = 0; t < traj.lastKey(); t += dt) {
+      //   fw.write(traj.getInterpolated(t).getLeftDrive() + ", " + traj.getInterpolated(t).getRightDrive() + ", " + traj.getInterpolated(t).getHeading() + "\n");
+      // }
+      for(Entry<Double, DriveState> ds : set) {
+        fw.write(ds.getValue().getLeftDrive() + ", " + ds.getValue().getRightDrive() + ", " + ds.getValue().getHeading() + "\n");
+      }
+      fw.close();
     } catch (Exception e) {}
   }
 
